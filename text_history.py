@@ -61,15 +61,12 @@ class TextHistory:
                     actions.pop(idx)
         return actions
 
-
-
-
     def get_actions(self, from_version=None, to_version=None):
         if not len(self._actions):
             return []
         if from_version is None:
             from_version = 0
-        if to_version is None and self._actions:
+        if to_version is None:
             to_version = self._actions[-1].to_version
         if from_version < 0 or to_version < 0:
             raise ValueError("Versions can not be negative.")
