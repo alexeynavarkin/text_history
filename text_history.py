@@ -27,32 +27,77 @@ class TextHistory:
         return act.to_version
 
     def insert(self, text, pos=None):
-        # TODO: maybe keep replaced fragment to revert
+        if pos is None:
+            pos = len(self._text)
         act = InsertAction(text, pos, self._version, self._version+1)
         return self.action(act)
 
     def delete(self, pos, length):
-        # TODO: maybe keep deleted fragment to revert
         act = DeleteAction(pos, length, self._version, self._version+1)
         return self.action(act)
 
     def replace(self, text, pos=None):
+        if pos is None:
+            pos = len(self._text)
         act = ReplaceAction(text, pos, self._version, self._version+1)
         return self.action(act)
 
-    def get_actions(self, from_versionsion, to_versionsion):
-        # TODO: implement function
-        pass
+    def optimise(self, actions):
+        for idx in range(len(actions)-1):
+            if isinstance(actions[idx], DeleteAction) and isinstance(actions[idx+1], DeleteAction):
+                if actions[idx].pos == actions[idx+1].pos:
+                    pos = actions[idx].pos
+                    length = actions[idx].length + actions[idx+1].length
+                    from_version = actions[idx].from_version
+                    to_version = actions[idx].to_version
+                    act = DeleteAction(pos, length, from_version, to_version)
+                    actions.pop(idx)
+                    actions.pop(idx)
+                    actions.insert(idx, act)
+            if isinstance(actions[idx], ReplaceAction) and isinstance(actions[idx+1], ReplaceAction):
+                if actions[idx].pos == actions[idx+1].pos and \
+                   len(actions[idx]._text) <= len(actions[idx+1]._text):
+                    actions[idx+1]._from_version = actions[idx].from_version
+                    actions.pop(idx)
+        return actions
+
+
+
+
+    def get_actions(self, from_version=None, to_version=None):
+        if not len(self._actions):
+            return []
+        if from_version is None:
+            from_version = 0
+        if to_version is None and self._actions:
+            to_version = self._actions[-1].to_version
+        if from_version < 0 or to_version < 0:
+            raise ValueError("Versions can not be negative.")
+        if from_version > to_version:
+            raise ValueError("Bad version range. (from_version < to_version)")
+        if self._actions and to_version > self._actions[-1].to_version:
+            raise ValueError("Given version out of range.")
+        actions = []
+        for action in self._actions:
+            if action.from_version >= from_version and action.to_version <= to_version:
+                actions.append(action)
+        return self.optimise(actions)
+
 
 
 class Action(ABC):
+    """
+    Abstract action class for text editing
+
+    Attributes:
+        _from_version - from that version action can update text
+        _to_version   - to that version action can update text
+    """
     def __init__(self, from_version, to_version):
         if from_version >= to_version or from_version < 0 or to_version < 0:
             raise ValueError("Wrong version values.")
         self._from_version = from_version
         self._to_version = to_version
-        print("Created action from ver. {} to {}"\
-              .format(from_version, to_version))
 
     @property
     def from_version(self):
@@ -68,36 +113,61 @@ class Action(ABC):
 
 
 class InsertAction(Action):
+    """
+    Class for insert action
+
+    Attributes:
+        _text - text that should be inserted
+        _pos  - position where _text should be inserted
+    """
     def __init__(self,  text, pos, from_version, to_version):
         if pos is not None and int(pos) < 0:
             raise ValueError("Pos can not be negative.")
         self._text = text
         self._pos = pos
         super().__init__(from_version, to_version)
-        print(self)
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def pos(self):
+        return self._pos
 
     def apply(self, apply_to):
-        if self._pos is None:
-            pos = len(apply_to)
-        elif len(apply_to) < self._pos:
+        if len(apply_to) < self._pos:
             raise ValueError("Insert position {} out of string length {}." \
                              .format(self._pos, len(apply_to)))
-        else:
-            pos = self._pos
-        return apply_to[:pos] + self._text + apply_to[pos:]
+        return apply_to[:self._pos] + self._text + apply_to[self._pos:]
 
     def __str__(self):
         return "Insert Action: pos {} text {}(ver. {}->{})" \
-            .format(self._pos, self._text, self._from_version, self._to_version)
+               .format(self._pos, self._text, self._from_version, self._to_version)
 
 
 class DeleteAction(Action):
+    """
+        Class for insert action
+
+        Attributes:
+            _pos    - position from where to delete
+            _length - length to delete
+        """
     def __init__(self,  pos, length, from_version, to_version):
         if pos < 0 or length < 0:
             raise ValueError("Pos and length can not be negative.")
         self._pos = pos
         self._length = length
         super().__init__(from_version, to_version)
+
+    @property
+    def pos(self):
+        return self._pos
+
+    @property
+    def length(self):
+        return self._length
 
     def apply(self, apply_to):
         if int(self._pos) > len(apply_to):
@@ -108,19 +178,30 @@ class DeleteAction(Action):
 
 
 class ReplaceAction(Action):
+    """
+        Class for insert action
+
+        Attributes:
+            _text - text to use as replacement
+            _pos  - position from where to replace
+    """
     def __init__(self, text, pos, from_version, to_version):
-        super().__init__(from_version, to_version)
         if pos is not None and pos < 0:
             raise ValueError("Pos can not be negative.")
         self._text = text
         self._pos = pos
+        super().__init__(from_version, to_version)
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def pos(self):
+        return self._pos
 
     def apply(self, apply_to):
-        if self._pos is None:
-            pos = len(apply_to)
-        elif len(apply_to) < self._pos:
+        if len(apply_to) < self._pos:
             raise ValueError("Insert position {} out of string length {}." \
                              .format(self._pos, len(apply_to)))
-        else:
-            pos = self._pos
-        return apply_to[:pos] + self._text + apply_to[pos+len(self._text):]
+        return apply_to[:self._pos] + self._text + apply_to[self._pos+len(self._text):]
