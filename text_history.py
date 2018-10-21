@@ -42,7 +42,7 @@ class TextHistory:
         act = ReplaceAction(text, pos, self._version, self._version+1)
         return self.action(act)
 
-    def optimise(self, actions):
+    def optimize(self, actions):
         for idx in range(len(actions)-1):
             if isinstance(actions[idx], DeleteAction) and isinstance(actions[idx+1], DeleteAction):
                 if actions[idx].pos == actions[idx+1].pos:
@@ -78,7 +78,7 @@ class TextHistory:
         for action in self._actions:
             if action.from_version >= from_version and action.to_version <= to_version:
                 actions.append(action)
-        return self.optimise(actions)
+        return self.optimize(actions)
 
 
 
