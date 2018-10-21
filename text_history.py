@@ -52,8 +52,8 @@ class TextHistory:
                     actions.pop(idx)
                     actions[idx] = self._optimize_delete(f_act, s_act)
             if type(f_act) is type(s_act) is ReplaceAction:
-                if actions[idx].pos == actions[idx+1].pos and \
-                   len(actions[idx]._text) <= len(actions[idx+1]._text):
+                if f_act.pos == s_act.pos and \
+                len(f_act._text) <= len(s_act._text):
                     actions.pop(idx)
                     actions[idx] = self._optimize_replace(f_act, s_act)
         return actions
