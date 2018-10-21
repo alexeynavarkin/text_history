@@ -44,22 +44,31 @@ class TextHistory:
 
     def optimize(self, actions):
         for idx in range(len(actions)-1):
-            if isinstance(actions[idx], DeleteAction) and isinstance(actions[idx+1], DeleteAction):
-                if actions[idx].pos == actions[idx+1].pos:
-                    pos = actions[idx].pos
-                    length = actions[idx].length + actions[idx+1].length
-                    from_version = actions[idx].from_version
-                    to_version = actions[idx].to_version
-                    act = DeleteAction(pos, length, from_version, to_version)
+            # some cool variables
+            f_act = actions[idx]
+            s_act = actions[idx+1]
+            if type(f_act) is type(s_act) is DeleteAction:
+                if f_act.pos == s_act.pos:
                     actions.pop(idx)
-                    actions.pop(idx)
-                    actions.insert(idx, act)
-            if isinstance(actions[idx], ReplaceAction) and isinstance(actions[idx+1], ReplaceAction):
+                    actions[idx] = self._optimize_delete(f_act, s_act)
+            if type(f_act) is type(s_act) is ReplaceAction:
                 if actions[idx].pos == actions[idx+1].pos and \
                    len(actions[idx]._text) <= len(actions[idx+1]._text):
-                    actions[idx+1]._from_version = actions[idx].from_version
                     actions.pop(idx)
+                    actions[idx] = self._optimize_replace(f_act, s_act)
         return actions
+
+    def _optimize_delete(self, f_act, s_act):
+        pos = f_act.pos
+        length = f_act.length + s_act.length
+        from_version = f_act.from_version
+        to_version = f_act.to_version
+        act = DeleteAction(pos, length, from_version, to_version)
+        return act
+
+    def _optimize_replace(self, f_act, s_act):
+        s_act._from_version = f_act.from_version
+        return s_act
 
     def get_actions(self, from_version=None, to_version=None):
         if not len(self._actions):
