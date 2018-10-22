@@ -8,7 +8,7 @@ class TextHistory:
         self._version = version
 
     def __str__(self):
-        return "TextHistory: (ver.{})".format(self._version)
+        return "TextHistory(ver.{}):\n{}".format(self._version, self._text)
 
     @property
     def text(self):
@@ -131,6 +131,10 @@ class InsertAction(Action):
         self._pos = pos
         super().__init__(from_version, to_version)
 
+    def __repr__(self):
+        return "InsertAction(text={}, pos='{}', from_version={}, to_version={})" \
+               .format(self._text, self._pos, self._from_version, self._to_version)
+
     @property
     def text(self):
         return self._text
@@ -144,11 +148,6 @@ class InsertAction(Action):
             raise ValueError("Insert position {} out of string length {}." \
                              .format(self._pos, len(apply_to)))
         return apply_to[:self._pos] + self._text + apply_to[self._pos:]
-
-    def __str__(self):
-        return "Insert Action: pos {} text {}(ver. {}->{})" \
-               .format(self._pos, self._text, self._from_version, self._to_version)
-
 
 class DeleteAction(Action):
     """
@@ -165,6 +164,10 @@ class DeleteAction(Action):
         self._length = length
         super().__init__(from_version, to_version)
 
+    def __repr__(self):
+        return "DeleteAction(pos={}, length={}, from_version={}, to_version={})" \
+               .format(self._pos, self._length, self._from_version, self._to_version)
+
     @property
     def pos(self):
         return self._pos
@@ -180,7 +183,6 @@ class DeleteAction(Action):
             raise ValueError("Trying to delete symbols out of string.")
         return apply_to[:self._pos] + apply_to[self._pos+self._length:]
 
-
 class ReplaceAction(Action):
     """
         Class for insert action
@@ -195,6 +197,10 @@ class ReplaceAction(Action):
         self._text = text
         self._pos = pos
         super().__init__(from_version, to_version)
+
+    def __repr__(self):
+        return "ReplaceAction(text='{}', pos={}, from_version={}, to_version={})" \
+               .format(self._text, self._pos, self._from_version, self._to_version)
 
     @property
     def text(self):
