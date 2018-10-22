@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from math import inf
 
 class TextHistory:
     def __init__(self, text='', actions=None, version=0):
@@ -71,17 +71,15 @@ class TextHistory:
         return s_act
 
     def get_actions(self, from_version=None, to_version=None):
-        if not len(self._actions):
-            return []
         if from_version is None:
             from_version = 0
         if to_version is None:
-            to_version = self._actions[-1].to_version
+            to_version = inf
         if from_version < 0 or to_version < 0:
             raise ValueError("Versions can not be negative.")
         if from_version > to_version:
             raise ValueError("Bad version range. (from_version < to_version)")
-        if self._actions and to_version > self._actions[-1].to_version:
+        if to_version != inf and to_version > self._actions[-1].to_version:
             raise ValueError("Given version out of range.")
         actions = []
         for action in self._actions:
