@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from math import inf
 
+
 class TextHistory:
     def __init__(self, text='', actions=None, version=0):
         self._actions = [] if not actions else actions
@@ -47,28 +48,9 @@ class TextHistory:
             # some cool variables
             f_act = actions[idx]
             s_act = actions[idx+1]
-            if type(f_act) is type(s_act) is DeleteAction:
-                if f_act.pos == s_act.pos:
-                    actions.pop(idx)
-                    actions[idx] = self._optimize_delete(f_act, s_act)
-            if type(f_act) is type(s_act) is ReplaceAction:
-                if f_act.pos == s_act.pos and \
-                len(f_act._text) <= len(s_act._text):
-                    actions.pop(idx)
-                    actions[idx] = self._optimize_replace(f_act, s_act)
+            if f_act.merge(s_act):
+                actions.pop(idx+1)
         return actions
-
-    def _optimize_delete(self, f_act, s_act):
-        pos = f_act.pos
-        length = f_act.length + s_act.length
-        from_version = f_act.from_version
-        to_version = f_act.to_version
-        act = DeleteAction(pos, length, from_version, to_version)
-        return act
-
-    def _optimize_replace(self, f_act, s_act):
-        s_act._from_version = f_act.from_version
-        return s_act
 
     def get_actions(self, from_version=None, to_version=None):
         if from_version is None:
@@ -86,7 +68,6 @@ class TextHistory:
             if action.from_version >= from_version and action.to_version <= to_version:
                 actions.append(action)
         return self.optimize(actions)
-
 
 
 class Action(ABC):
@@ -143,11 +124,24 @@ class InsertAction(Action):
     def pos(self):
         return self._pos
 
+    def merge(self, action):
+        return action.merge_with_insert(self)
+
+    def merge_with_replace(self, action):
+        return None
+
+    def merge_with_delete(self, action):
+        return None
+
+    def merge_with_insert(self, action):
+        return None
+
     def apply(self, apply_to):
         if len(apply_to) < self._pos:
             raise ValueError("Insert position {} out of string length {}." \
                              .format(self._pos, len(apply_to)))
         return apply_to[:self._pos] + self._text + apply_to[self._pos:]
+
 
 class DeleteAction(Action):
     """
@@ -168,6 +162,11 @@ class DeleteAction(Action):
         return "DeleteAction(pos={}, length={}, from_version={}, to_version={})" \
                .format(self._pos, self._length, self._from_version, self._to_version)
 
+    def __eq__(self, other):
+        if isinstance(other, DeleteAction) and self._pos == other._pos:
+            return True
+        return False
+
     @property
     def pos(self):
         return self._pos
@@ -176,12 +175,29 @@ class DeleteAction(Action):
     def length(self):
         return self._length
 
+    def merge(self, action):
+        return action.merge_with_delete(self)
+
+    def merge_with_replace(self, action):
+        return None
+
+    def merge_with_delete(self, action):
+        if self._pos == action._pos:
+            action._length += self._length
+            action._to_version = self._to_version
+            return True
+        return None
+
+    def merge_with_insert(self, action):
+        return None
+
     def apply(self, apply_to):
         if int(self._pos) > len(apply_to):
             raise ValueError("Pos out of string length.")
         if self._pos + self._length > len(apply_to):
             raise ValueError("Trying to delete symbols out of string.")
         return apply_to[:self._pos] + apply_to[self._pos+self._length:]
+
 
 class ReplaceAction(Action):
     """
@@ -202,6 +218,11 @@ class ReplaceAction(Action):
         return "ReplaceAction(text='{}', pos={}, from_version={}, to_version={})" \
                .format(self._text, self._pos, self._from_version, self._to_version)
 
+    def __eq__(self, other):
+        if isinstance(other, ReplaceAction) and self._pos == other._pos:
+            return True
+        return False
+
     @property
     def text(self):
         return self._text
@@ -209,6 +230,25 @@ class ReplaceAction(Action):
     @property
     def pos(self):
         return self._pos
+
+    def merge(self, action):
+        return action.merge_with_replace(self)
+
+    def merge_with_replace(self, action):
+        if self._pos == action._pos and len(self._text) >= len(action._text):
+            if action._to_version < self._to_version:
+                action._to_version = self._to_version
+                action._text = self._text
+            else:
+                action._from_version = self._from_version
+            return True
+        return None
+
+    def merge_with_delete(self, action):
+        return None
+
+    def merge_with_insert(self, action):
+        return None
 
     def apply(self, apply_to):
         if len(apply_to) < self._pos:
