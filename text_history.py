@@ -184,7 +184,10 @@ class DeleteAction(Action):
     def merge_with_delete(self, action):
         if self._pos == action._pos:
             action._length += self._length
-            action._to_version = self._to_version
+            if action._from_version < self._from_version:
+                action._to_version = self._to_version
+            else:
+                action._from_version = self._from_version
             return True
         return None
 
