@@ -130,13 +130,13 @@ class InsertAction(Action):
         return action.merge_with_insert(self)
 
     def merge_with_replace(self, action):
-        return None
+        pass
 
     def merge_with_delete(self, action):
-        return None
+        pass
 
     def merge_with_insert(self, action):
-        return None
+        pass
 
     def apply(self, apply_to):
         if len(apply_to) < self._pos:
@@ -181,7 +181,7 @@ class DeleteAction(Action):
         return action.merge_with_delete(self)
 
     def merge_with_replace(self, action):
-        return None
+        pass
 
     def merge_with_delete(self, action):
         if self._pos == action._pos:
@@ -191,10 +191,9 @@ class DeleteAction(Action):
             else:
                 action._from_version = self._from_version
             return True
-        return None
 
     def merge_with_insert(self, action):
-        return None
+        pass
 
     def apply(self, apply_to):
         if int(self._pos) > len(apply_to):
@@ -226,7 +225,6 @@ class ReplaceAction(Action):
     def __eq__(self, other):
         if isinstance(other, ReplaceAction) and self._pos == other._pos:
             return True
-        return False
 
     @property
     def text(self):
@@ -247,13 +245,12 @@ class ReplaceAction(Action):
             else:
                 action._from_version = self._from_version
             return True
-        return None
 
     def merge_with_delete(self, action):
-        return None
+        pass
 
     def merge_with_insert(self, action):
-        return None
+        pass
 
     def apply(self, apply_to):
         if len(apply_to) < self._pos:
