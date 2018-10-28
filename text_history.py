@@ -44,12 +44,14 @@ class TextHistory:
         return self.action(act)
 
     def optimize(self, actions):
-        for idx in range(len(actions)-1):
+        idx = 0
+        while idx < len(actions)-1:
             # some cool variables
             f_act = actions[idx]
             s_act = actions[idx+1]
             if f_act.merge(s_act):
                 actions.pop(idx+1)
+            idx += 1
         return actions
 
     def get_actions(self, from_version=None, to_version=None):
