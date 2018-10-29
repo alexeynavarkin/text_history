@@ -165,7 +165,7 @@ class DeleteAction(Action):
                .format(self._pos, self._length, self._from_version, self._to_version)
 
     def __eq__(self, other):
-        if isinstance(other, DeleteAction) and self._pos == other._pos:
+        if isinstance(other, type(self)) and self._pos == other._pos and self._length == other._length:
             return True
         return False
 
@@ -223,7 +223,7 @@ class ReplaceAction(Action):
                .format(self._text, self._pos, self._from_version, self._to_version)
 
     def __eq__(self, other):
-        if isinstance(other, ReplaceAction) and self._pos == other._pos:
+        if isinstance(other, type(self)) and self._pos == other._pos and self._text == other._pos:
             return True
 
     @property
